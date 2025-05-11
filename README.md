@@ -15,6 +15,7 @@ Add the tasks to your build definition.
 ![configure_task](https://github.com/kselva92/azure-pipeline-gpt-pr-review/blob/main/images/configure_task.png)
 
 ## Setup
+Hi Trying this
 
 ### Give permission to the build service agent
 
@@ -46,7 +47,7 @@ If you choose to use the Azure Open AI service, you must fill in the endpoint an
 
 ### OpenAI Models
 
-In case you don't use Azure Open AI Service, you can choose which model to use, the supported models are "gpt-4", "gpt-3.5-turbo" and "gpt-3.5-turbo-16k". if no model is selected the "gpt-3.5-turbo" is used.
+In case you don't use Azure Open AI Service, you can choose which model to use, the supported models are "gpt-4o-mini", "gpt-4o", "gpt-4", "gpt-3.5-turbo" and "gpt-3.5-turbo-16k". if no model is selected the "gpt-3.5-turbo" is used.
 
 ## Contributions
 
