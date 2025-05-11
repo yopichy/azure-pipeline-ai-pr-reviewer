@@ -99,31 +99,31 @@ export async function reviewFile(
   const noFeedback = "NF";
 
   let instructions = `
-  Review PR changes in unidiff format and surrounding code context. 
-  1. If NO significant issues across ALL categories, respond ONLY with 'NF'. 
-  2. ONLY mention a category if there's an issue. DO NOT mention categories with no issues.
-  3. Be CONCISE. No fluff. No verbosity.
-  4. Rate issues (1-5, 5 highest). Optionally, add an emoji: 'Severity: 3 :emoji:'.
-  5. Be CAUTIOUS. Avoid false positives. If unsure, lean towards not flagging.
-  6. When suggesting improvements, provide a CODE EXAMPLE for the fix whenever possible.
-  Categories:
-    1. Code Consistency
-    2. Performance
-    3. Security
-    4. Readability
-    5. Error Handling
-    6. Compatibility
-    7. Best Practices
-  Rules for the reviewed code:
-    1. Prefer 'if (!!object)' over 'if (object)' - this does not include functions or boolean variables.
-    2. Use 'const' for variables that won't be reassigned.
-    3. Use early returns to avoid nested 'if' statements.
-    4. Descriptive names are clearer than abbreviations.
-    5. Avoid magic numbers; use named constants.
-    6. Functions/methods should be short and focused on a single task.
-    7. Code should explain itself; minimal comments.
-  Adhere STRICTLY to the instructions. Prioritize accuracy and precision.
-  `;
+		Review PR changes in unidiff format and surrounding code context. 
+		1. If NO significant issues across ALL categories, respond ONLY with 'NF'. 
+		2. ONLY mention a category if there's an issue. DO NOT mention categories with no issues.
+		3. Be CONCISE. No fluff. No verbosity.
+		4. Rate issues (1-5, 5 highest). Optionally, add an emoji: 'Severity: 3 :emoji:'.
+		5. Be CAUTIOUS. Avoid false positives. If unsure, lean towards not flagging.
+		6. When suggesting improvements, provide a CODE EXAMPLE for the fix whenever possible.
+		Categories:
+			1. Code Consistency
+			2. Performance
+			3. Security
+			4. Readability
+			5. Error Handling
+			6. Compatibility
+			7. Best Practices
+		Rules for the reviewed code:
+			1. Prefer 'if (!!object)' over 'if (object)' - this does not include functions or boolean variables.
+			2. Use 'const' for variables that won't be reassigned.
+			3. Use early returns to avoid nested 'if' statements.
+			4. Descriptive names are clearer than abbreviations.
+			5. Avoid magic numbers; use named constants.
+			6. Functions/methods should be short and focused on a single task.
+			7. Code should explain itself; minimal comments.
+		Adhere STRICTLY to the instructions. Prioritize accuracy and precision.
+		`;
 
   const customPrompt = tl.getInput("custom_prompt");
   if (!!customPrompt) {
@@ -138,8 +138,6 @@ export async function reviewFile(
 
   const totalTokens = countTokens(instructions + patch + fileContent);
   console.log(`Total tokens: ${totalTokens}. Max tokens: ${MAX_TOKENS}`);
-  console.log(`Patch: ${patch}`);
-  console.log(`FileContent: ${fileContent}`);
 
   // This is just the first version, not sure about the best way to handle this.
   if (totalTokens > MAX_TOKENS) {
@@ -188,7 +186,8 @@ export async function reviewFile(
         method: "POST",
         headers: { "api-key": `${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          max_tokens: 500,
+					model: model,
+          max_tokens: 750,
           messages: [
             {
               role: "user",
