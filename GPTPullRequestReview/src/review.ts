@@ -182,24 +182,56 @@ export async function reviewFile(
 
       choices = response.data.choices;
     } else if (aoiEndpoint) {
-      const request = await fetch(aoiEndpoint, {
-        method: "POST",
-        headers: { "api-key": `${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-					model: model,
-          max_tokens: 750,
-          messages: [
-            {
-              role: "user",
-              content: `${instructions}\n, patch : ${patch}}`,
-            },
-          ],
-        }),
-      });
+      // Check if this is Azure AI Foundry Responses API endpoint
+      const isResponsesAPI = aoiEndpoint.includes('/openai/responses');
 
-      const response = await request.json();
+      if (isResponsesAPI) {
+        // Azure AI Foundry Responses API
+        const request = await fetch(aoiEndpoint, {
+          method: "POST",
+          headers: { "api-key": `${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: model,
+            max_tokens: 750,
+            messages: [
+              {
+                role: "system",
+                content: instructions,
+              },
+              {
+                role: "user",
+                content: patch,
+              },
+              {
+                role: "user",
+                content: `Surrounding code : ${fileContent}`,
+              },
+            ],
+          }),
+        });
 
-      choices = response.choices;
+        const response = await request.json();
+        choices = response.choices;
+      } else {
+        // Legacy Azure OpenAI Chat Completions API
+        const request = await fetch(aoiEndpoint, {
+          method: "POST",
+          headers: { "api-key": `${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: model,
+            max_tokens: 750,
+            messages: [
+              {
+                role: "user",
+                content: `${instructions}\n, patch : ${patch}}`,
+              },
+            ],
+          }),
+        });
+
+        const response = await request.json();
+        choices = response.choices;
+      }
     }
 
     if (choices && choices.length > 0) {

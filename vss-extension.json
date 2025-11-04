@@ -1,9 +1,9 @@
 {
     "manifestVersion": 1,
-    "id": "AIPullRequestReviewPrompt",
-    "name": "AI Pull Request Review Prompt by kselva92",
-    "version": "1.1.1",
-    "publisher": "kselva92",
+    "id": "AIPrReviewer",
+    "name": "AI PR Reviewer",
+    "version": "2.0.0",
+    "publisher": "yopichy",
     "galleryFlags": [
         "Public",
         "Preview"
@@ -13,7 +13,7 @@
             "id": "Microsoft.VisualStudio.Services"
         }
     ],
-    "description": "AI Pull Request Review Prompt by kselva92",
+    "description": "AI PR Reviewer - Automated Pull Request reviews using GPT models",
     "categories": [
         "Azure Pipelines"
     ],
@@ -34,7 +34,7 @@
     ],
     "repository": {
         "type": "git",
-        "uri": "https://github.com/kselva92/azure-pipeline-gpt-pr-review"
+        "uri": "https://github.com/yopichy/azure-pipeline-ai-pr-reviewer"
     },
     "content": {
         "details": {
@@ -43,7 +43,7 @@
     },
     "contributions": [
         {
-            "id": "AIPullRequestReviewPrompt",
+            "id": "AIPrReviewer",
             "type": "ms.vss-distributed-task.task",
             "targets": [
                 "ms.vss-distributed-task.tasks"

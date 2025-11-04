@@ -3,17 +3,17 @@
   "name": "AIPullRequestReviewPrompt",
   "friendlyName": "AI Pull Request Review with Custom Prompt",
   "description": "This task uses OpenAI to generate a pull request review with custom prompt.",
-  "author": "kselva92",
-  "helpMarkDown": "[More Information](https://github.com/kselva92/azure-pipeline-gpt-pr-review)",
+  "author": "yopichy",
+  "helpMarkDown": "[More Information](https://github.com/yopichy/azure-pipeline-ai-pr-reviewer)",
   "category": "Utility",
   "visibility": [
     "Build"
   ],
   "demands": [],
   "version": {
-    "Major": "1",
-    "Minor": "1",
-    "Patch": "1"
+    "Major": "2",
+    "Minor": "0",
+    "Patch": "0"
   },
   "minimumAgentVersion": "1.95.0",
   "instanceNameFormat": "GPTPullRequestReview $(message)",
@@ -33,13 +33,19 @@
       "required": false,
       "options": {
         "": "",
+        "gpt-5": "GPT 5",
+        "gpt-5-mini": "GPT 5 Mini",
+        "gpt-5-nano": "GPT 5 Nano",
+        "gpt-5-chat": "GPT 5 Chat",
+        "gpt-5-pro": "GPT 5 Pro",
+        "grok-code-fast-1": "Grok Code Fast 1",
         "gpt-4o-mini": "GPT 4o mini",
         "gpt-4o": "GPT 4o",
         "gpt-4": "GPT 4",
         "gpt-3.5-turbo": "GPT 3.5 Turbo",
         "gpt-3.5-turbo-16k": "GPT 3.5 Turbo 16k"
       },
-      "helpMarkDown": "The OpenAI model to use. not used if you use Azure OpenAI. if no model is selected, the GPT 3.5 Turbo model is used."
+      "helpMarkDown": "The model to use. Supports OpenAI models and Azure AI Foundry models like GPT-5 series and Grok models. If no model is selected, the GPT 3.5 Turbo model is used."
     },
     {
       "name": "aoi_endpoint",
