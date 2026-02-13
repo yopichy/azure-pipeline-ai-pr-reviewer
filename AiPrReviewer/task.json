@@ -13,7 +13,7 @@
   "version": {
     "Major": "2",
     "Minor": "0",
-    "Patch": "15"
+    "Patch": "20"
   },
   "minimumAgentVersion": "1.95.0",
   "instanceNameFormat": "AiPrReviewer $(message)",
@@ -52,6 +52,27 @@
         "gpt-5.2-codex": "GPT 5.2 Codex"
       },
       "helpMarkDown": "The model/deployment to use (OpenAI, Azure OpenAI, and Azure AI Foundry partner models such as Grok and Kimi). If no model is selected, defaults to GPT 4.1 Mini when using an Azure endpoint; otherwise defaults to GPT 3.5 Turbo when using OpenAI."
+    },
+    {
+      "name": "max_output_tokens",
+      "type": "string",
+      "label": "Max output tokens",
+      "defaultValue": "4096",
+      "required": false,
+      "helpMarkDown": "Maximum tokens for the model output. For reasoning models (e.g. GPT-5-mini), this budget covers both reasoning and output — set a higher value (4096+). Used as `max_output_tokens` (Responses API), `max_tokens` (OpenAI-compatible chat), or `max_completion_tokens` (Azure OpenAI chat)."
+    },
+    {
+      "name": "reasoning_effort",
+      "type": "pickList",
+      "label": "Reasoning effort",
+      "defaultValue": "low",
+      "required": false,
+      "options": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "helpMarkDown": "Controls how much reasoning effort the model spends (only used for reasoning models like GPT-5-mini via the Responses API). Lower effort = fewer reasoning tokens consumed, leaving more budget for actual output text."
     },
     {
       "name": "aoi_endpoint",

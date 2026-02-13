@@ -16,7 +16,134 @@ function truncateContent(content: string, maxTokens: number): string {
   return tokens.slice(0, maxTokens).join(" ");
 }
 
+/**
+ * Deduplicate review text that reasoning models sometimes echo twice.
+ * Splits by double-newline into paragraphs, removes exact duplicates
+ * while preserving order, and also detects when the entire second half
+ * is a repeat of the first half.
+ */
+function deduplicateReviewText(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return trimmed;
+
+  // Strategy 1: check if the text is exactly duplicated (second half = first half)
+  const len = trimmed.length;
+  const half = Math.floor(len / 2);
+  // Find a newline near the midpoint to split cleanly
+  for (let offset = 0; offset < Math.min(50, half); offset++) {
+    for (const pos of [half + offset, half - offset]) {
+      if (pos <= 0 || pos >= len) continue;
+      if (trimmed[pos] === "\n") {
+        const firstHalf = trimmed.substring(0, pos).trim();
+        const secondHalf = trimmed.substring(pos).trim();
+        if (firstHalf === secondHalf) {
+          return firstHalf;
+        }
+      }
+    }
+  }
+
+  // Strategy 2: deduplicate paragraphs (split by blank line)
+  const paragraphs = trimmed.split(/\n\s*\n/);
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const p of paragraphs) {
+    const normalized = p.trim();
+    if (!normalized) continue;
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      unique.push(normalized);
+    }
+  }
+
+  // Strategy 3: deduplicate individual lines (for bullet-style reviews)
+  if (unique.length === 1) {
+    const lines = trimmed.split("\n");
+    const seenLines = new Set<string>();
+    const uniqueLines: string[] = [];
+    for (const line of lines) {
+      const norm = line.trim();
+      if (!norm) {
+        uniqueLines.push("");
+        continue;
+      }
+      if (!seenLines.has(norm)) {
+        seenLines.add(norm);
+        uniqueLines.push(line);
+      }
+    }
+    return uniqueLines.join("\n").trim();
+  }
+
+  return unique.join("\n\n");
+}
+
 function extractReviewFromFoundryResponse(response: any): string | undefined {
+  function summarizeFoundryResponseShape(value: any): string {
+    try {
+      if (!value || typeof value !== "object") {
+        return `type=${typeof value}`;
+      }
+
+      const status = typeof value.status === "string" ? value.status : undefined;
+      const incompleteReason =
+        typeof value?.incomplete_details?.reason === "string"
+          ? value.incomplete_details.reason
+          : undefined;
+
+      const outputLen = Array.isArray(value.output)
+        ? value.output.length
+        : value.output
+          ? 1
+          : 0;
+
+      const textType = Array.isArray(value.text)
+        ? `array(len=${value.text.length})`
+        : typeof value.text;
+      const textLen = typeof value.text === "string" ? value.text.length : undefined;
+
+      const firstOutput = Array.isArray(value.output)
+        ? value.output[0]
+        : value.output;
+      const firstOutputKeys =
+        firstOutput && typeof firstOutput === "object"
+          ? Object.keys(firstOutput).slice(0, 12)
+          : [];
+
+      const summaryValue =
+        firstOutput && typeof firstOutput === "object" ? (firstOutput as any).summary : undefined;
+      const summaryType = Array.isArray(summaryValue)
+        ? `array(len=${summaryValue.length})`
+        : typeof summaryValue;
+
+      const firstContent =
+        firstOutput && typeof firstOutput === "object"
+          ? Array.isArray((firstOutput as any).content)
+            ? (firstOutput as any).content[0]
+            : (firstOutput as any).content
+          : undefined;
+      const firstContentKeys =
+        firstContent && typeof firstContent === "object"
+          ? Object.keys(firstContent).slice(0, 12)
+          : [];
+
+      return [
+        status ? `status=${status}` : undefined,
+        incompleteReason ? `incomplete_reason=${incompleteReason}` : undefined,
+        `outputLen=${outputLen}`,
+        `textType=${textType}`,
+        typeof textLen === "number" ? `textLen=${textLen}` : undefined,
+        summaryType !== "undefined" ? `firstSummaryType=${summaryType}` : undefined,
+        firstOutputKeys.length ? `firstOutputKeys=${firstOutputKeys.join("|")}` : undefined,
+        firstContentKeys.length ? `firstContentKeys=${firstContentKeys.join("|")}` : undefined,
+      ]
+        .filter(Boolean)
+        .join(" ");
+    } catch {
+      return "(shape unavailable)";
+    }
+  }
+
   function extractFromResponsesOutput(output: any): string | undefined {
     const outputItems = Array.isArray(output)
       ? output
@@ -34,10 +161,10 @@ function extractReviewFromFoundryResponse(response: any): string | undefined {
       if (Array.isArray(item.content)) {
         for (const contentItem of item.content) {
           const textCandidate =
-            (typeof contentItem?.text === "string" ? contentItem.text : undefined) ??
-            (typeof contentItem?.text?.value === "string" ? contentItem.text.value : undefined) ??
-            (typeof contentItem?.output_text === "string" ? contentItem.output_text : undefined) ??
-            (typeof contentItem?.value === "string" ? contentItem.value : undefined);
+            firstText(contentItem?.text) ??
+            firstText(contentItem?.output_text) ??
+            firstText(contentItem?.value) ??
+            firstText(contentItem);
 
           if (textCandidate?.trim()) {
             textParts.push(textCandidate.trim());
@@ -56,12 +183,14 @@ function extractReviewFromFoundryResponse(response: any): string | undefined {
             textParts.push(summaryText.trim());
           }
         }
+      } else if (item.summary) {
+        const summaryText = firstText(item.summary);
+        if (summaryText?.trim()) {
+          textParts.push(summaryText.trim());
+        }
       }
 
-      const itemText =
-        (typeof item?.text === "string" ? item.text : undefined) ??
-        (typeof item?.text?.value === "string" ? item.text.value : undefined);
-
+      const itemText = firstText(item?.text) ?? firstText(item);
       if (itemText?.trim()) {
         textParts.push(itemText.trim());
       }
@@ -114,6 +243,11 @@ function extractReviewFromFoundryResponse(response: any): string | undefined {
   const outputTextValue = firstText(response.output_text);
   if (outputTextValue) {
     return outputTextValue;
+  }
+
+  const topLevelTextValue = firstText(response.text);
+  if (topLevelTextValue) {
+    return topLevelTextValue;
   }
 
   const responsesOutputValue = extractFromResponsesOutput(response.output);
@@ -178,10 +312,13 @@ function extractReviewFromFoundryResponse(response: any): string | undefined {
     return messageValue;
   }
 
-  const textValue = firstText(response.text);
-  if (textValue) {
-    return textValue;
+  if (typeof response?.status === "string" && response.status !== "completed") {
+    console.warn(`Foundry response status: ${response.status}`);
   }
+  if (response?.incomplete_details) {
+    console.warn(`Foundry incomplete details: ${JSON.stringify(response.incomplete_details)}`);
+  }
+  console.warn(`Foundry response shape: ${summarizeFoundryResponseShape(response)}`);
 
   return undefined;
 }
@@ -357,6 +494,18 @@ export async function reviewFile(
 
   const model = tl.getInput("model") || defaultOpenAIModel;
 
+  const maxOutputTokensRaw = (tl.getInput("max_output_tokens") || "").trim();
+  let maxOutputTokens = Number.parseInt(maxOutputTokensRaw, 10);
+  if (!Number.isFinite(maxOutputTokens) || maxOutputTokens <= 0) {
+    maxOutputTokens = 4096;
+  }
+  maxOutputTokens = Math.min(Math.max(maxOutputTokens, 1), 20000);
+
+  const reasoningEffortRaw = (tl.getInput("reasoning_effort") || "low").trim().toLowerCase();
+  const reasoningEffort = ["low", "medium", "high"].includes(reasoningEffortRaw)
+    ? reasoningEffortRaw
+    : "low";
+
   const additionalPrContext = prContext?.trim()
     ? `\n\nAdditional PR context from Azure DevOps:\n${prContext}`
     : "";
@@ -397,7 +546,7 @@ export async function reviewFile(
             content: `Surrounding code : ${fileContent}`,
           },
         ],
-        max_tokens: 750,
+        max_tokens: maxOutputTokens,
       });
 
       console.log(
@@ -413,12 +562,14 @@ export async function reviewFile(
 
       if (isResponsesAPI) {
         // Azure AI Foundry Responses API
+        console.log(`Responses API request: model=${model}, max_output_tokens=${maxOutputTokens}, reasoning_effort=${reasoningEffort}`);
         const request = await fetch(aoiEndpoint, {
           method: "POST",
           headers: { "api-key": `${apiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: model,
-            max_output_tokens: 750,
+            max_output_tokens: maxOutputTokens,
+            reasoning: { effort: reasoningEffort },
             input: `${promptInstructions}\n\nPatch:\n${patch}\n\nSurrounding code:\n${fileContent}`,
           }),
         });
@@ -476,9 +627,9 @@ export async function reviewFile(
         };
 
         if (isOpenAIStyleChat) {
-          requestBody.max_tokens = 750;
+          requestBody.max_tokens = maxOutputTokens;
         } else {
-          requestBody.max_completion_tokens = 750;
+          requestBody.max_completion_tokens = maxOutputTokens;
         }
 
         const request = await fetch(chatCompletionsUrl, {
@@ -493,6 +644,30 @@ export async function reviewFile(
         }
 
         const response = await request.json();
+
+        // Diagnostic: log chat completions choice details for debugging
+        if (Array.isArray(response?.choices) && response.choices.length > 0) {
+          const c0 = response.choices[0];
+          const contentVal = c0?.message?.content;
+          const contentType = contentVal === null ? "null" : typeof contentVal;
+          const contentLen = typeof contentVal === "string" ? contentVal.length : undefined;
+          const finishReason = c0?.finish_reason ?? "(none)";
+          const contentFilter = c0?.content_filter_results
+            ? JSON.stringify(c0.content_filter_results)
+            : undefined;
+          console.log(
+            `Chat choice[0]: finish_reason=${finishReason}, content_type=${contentType}` +
+            (typeof contentLen === "number" ? `, content_len=${contentLen}` : "") +
+            (contentFilter ? `, content_filter=${contentFilter}` : "")
+          );
+          // If content is a non-empty string, log a preview (first 200 chars)
+          if (typeof contentVal === "string" && contentVal.trim().length > 0) {
+            console.log(`Chat content preview: ${contentVal.substring(0, 200)}`);
+          }
+        } else {
+          console.warn(`Chat response has no choices. Keys: ${Object.keys(response || {}).join(",")}`);
+        }
+
         reviewText = extractReviewFromFoundryResponse(response);
         if (!reviewText || !reviewText.trim()) {
           console.log(`Chat response keys: ${Object.keys(response || {}).join(",")}`);
@@ -503,6 +678,8 @@ export async function reviewFile(
     if (!reviewText || !reviewText.trim()) {
       console.warn(`No review content returned for ${fileName}.`);
     } else {
+      // Deduplicate: reasoning models sometimes echo their answer twice
+      reviewText = deduplicateReviewText(reviewText);
       console.log(reviewText);
 
       if (!reviewText.trim().startsWith(noFeedback)) {
