@@ -2,8 +2,8 @@
     "manifestVersion": 1,
     "id": "AIPrReviewer",
     "name": "AI PR Reviewer",
-    "version": "2.0.0",
-    "publisher": "yopichy",
+    "version": "2.0.10",
+    "publisher": "inskyid",
     "galleryFlags": [
         "Public",
         "Preview"
@@ -29,7 +29,7 @@
     ],
     "files": [
         {
-            "path": "GPTPullRequestReview"
+            "path": "AiPrReviewer"
         }
     ],
     "repository": {
@@ -49,7 +49,7 @@
                 "ms.vss-distributed-task.tasks"
             ],
             "properties": {
-                "name": "GPTPullRequestReview"
+                "name": "AiPrReviewer"
             }
         }
     ]

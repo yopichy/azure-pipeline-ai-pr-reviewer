@@ -6,7 +6,7 @@ Streamline your pull request reviews with AI-powered feedback tailored to your n
 
 ## Installation
 
-Installation can be done using [Visual Studio MarketPlace](https://marketplace.visualstudio.com/items?itemName=yopichy.AIPrReviewer).
+Installation can be done using [Visual Studio MarketPlace](https://marketplace.visualstudio.com/items?itemName=inskyid.AIPrReviewer).
 
 ## Usage
 
@@ -47,15 +47,38 @@ If you choose to use the Azure Open AI service, you must fill in the endpoint an
 
 ### Azure AI Foundry
 
-For Azure AI Foundry models (including GPT-5 series and Grok models), use the Responses API endpoint format: https://{XXXXXXXX}.cognitiveservices.azure.com/openai/responses?api-version=2025-04-01-preview
+Azure AI Foundry supports multiple endpoint shapes. Use the one you see in the Foundry portal for your deployment:
+
+1) Responses API (api-key auth)
+
+https://{RESOURCE}.cognitiveservices.azure.com/openai/responses?api-version=2025-04-01-preview
+
+2) OpenAI-compatible endpoint (Bearer auth)
+
+https://{RESOURCE}.services.ai.azure.com/openai/v1/
+
+3) Models Chat Completions endpoint (api-key auth, as shown in some Foundry deployments)
+
+https://{RESOURCE}.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview
+
+Notes:
+- Set the task input "OpenAI model" to your deployment name (for example: grok-4-fast-reasoning).
+- The task detects the endpoint type automatically and applies the correct auth header.
 
 ### OpenAI Models
 
-In case you don't use Azure Open AI Service, you can choose which model to use, the supported models are "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5-chat", "gpt-5-pro", "gpt-4o-mini", "gpt-4o", "gpt-4", "gpt-3.5-turbo" and "gpt-3.5-turbo-16k". if no model is selected the "gpt-3.5-turbo" is used.
+If you leave the Azure endpoint empty, the task uses the OpenAI public API.
+If no model is selected, the task defaults to "gpt-3.5-turbo".
 
 ### Azure AI Foundry Models
 
-When using Azure AI Foundry, you can also use additional models like "grok-code-fast-1" (xAI's fast coding model optimized for agentic coding applications).
+The task dropdown currently includes these Azure AI Foundry model IDs:
+
+- gpt-4.1, gpt-4.1-mini, gpt-4.1-nano
+- gpt-5-mini
+- gpt-5.1, gpt-5.1-chat, gpt-5.1-codex, gpt-5.1-codex-mini, gpt-5.1-codex-max
+- gpt-5.2, gpt-5.2-chat, gpt-5.2-codex
+- grok-code-fast-1, grok-3-mini, grok-4-fast-reasoning, grok-4-fast-non-reasoning
 
 ## Contributions
 
@@ -63,9 +86,9 @@ Found and fixed a bug or improved on something? Contributions are welcome! Pleas
 
 To build and publish extension yourself.
 
-1. Build GPTPullRequestReview project `npm run build`
+1. Build AiPrReviewer project `npm run build`
 2. Bump version in vss-extension.json and task.json
-3. Run `npx tfx-cli extension create`
+3. Run `tfx extension create --manifest-globs vss-extension.json`
 4. Upload extension to marketplace https://marketplace.visualstudio.com/manage/
 
 ## License

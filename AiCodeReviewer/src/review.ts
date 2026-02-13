@@ -17,16 +17,56 @@ function truncateContent(content: string, maxTokens: number): string {
 }
 
 function extractReviewFromFoundryResponse(response: any): string | undefined {
+  function extractTextParts(value: any): string[] {
+    if (!value) {
+      return [];
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed ? [trimmed] : [];
+    }
+
+    if (Array.isArray(value)) {
+      const collected: string[] = [];
+      for (const item of value) {
+        collected.push(...extractTextParts(item));
+      }
+      return collected;
+    }
+
+    if (typeof value !== "object") {
+      return [];
+    }
+
+    const directFields = [value.text, value.value, value.content, value.output_text, value.message];
+    const collected: string[] = [];
+    for (const field of directFields) {
+      collected.push(...extractTextParts(field));
+    }
+
+    return collected;
+  }
+
+  function firstText(value: any): string | undefined {
+    const joined = extractTextParts(value).join("\n").trim();
+    return joined || undefined;
+  }
+
   if (!response) {
     return undefined;
   }
 
-  if (typeof response.output_text === "string" && response.output_text.trim()) {
-    return response.output_text;
+  const outputTextValue = firstText(response.output_text);
+  if (outputTextValue) {
+    return outputTextValue;
   }
 
   if (Array.isArray(response.choices) && response.choices.length > 0) {
-    return response.choices[0]?.message?.content;
+    const choiceTextValue = firstText(response.choices[0]?.message?.content);
+    if (choiceTextValue) {
+      return choiceTextValue;
+    }
   }
 
   const outputItems = Array.isArray(response.output)
@@ -53,22 +93,9 @@ function extractReviewFromFoundryResponse(response: any): string | undefined {
 
   const textParts: string[] = [];
   for (const content of contents) {
-    if (!content) {
-      continue;
-    }
-
-    if (typeof content === "string") {
-      textParts.push(content);
-      continue;
-    }
-
-    if (content?.type === "output_text" && typeof content?.text === "string") {
-      textParts.push(content.text);
-      continue;
-    }
-
-    if (typeof content?.text === "string") {
-      textParts.push(content.text);
+    const contentTextValue = firstText(content);
+    if (contentTextValue) {
+      textParts.push(contentTextValue);
     }
   }
 
@@ -78,12 +105,14 @@ function extractReviewFromFoundryResponse(response: any): string | undefined {
     return outputText;
   }
 
-  if (typeof response?.message === "string" && response.message.trim()) {
-    return response.message;
+  const messageValue = firstText(response.message);
+  if (messageValue) {
+    return messageValue;
   }
 
-  if (typeof response?.text === "string" && response.text.trim()) {
-    return response.text;
+  const textValue = firstText(response.text);
+  if (textValue) {
+    return textValue;
   }
 
   return undefined;
@@ -323,6 +352,9 @@ export async function reviewFile(
 
         const response = await request.json();
         reviewText = extractReviewFromFoundryResponse(response);
+        if (!reviewText || !reviewText.trim()) {
+          console.log(`Foundry response keys: ${Object.keys(response || {}).join(",")}`);
+        }
       } else {
         // Azure OpenAI / Foundry Chat Completions API
         const isOpenAICompatible = isOpenAICompatibleV1Endpoint(aoiEndpoint);
