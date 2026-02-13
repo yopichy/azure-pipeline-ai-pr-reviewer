@@ -63,6 +63,7 @@ https://{RESOURCE}.services.ai.azure.com/models/chat/completions?api-version=202
 
 Notes:
 - Set the task input "OpenAI model" to your deployment name (for example: grok-4-fast-reasoning).
+- Set the task input "Model" to your deployment name (for example: grok-4-fast-reasoning).
 - The task detects the endpoint type automatically and applies the correct auth header.
 
 ### OpenAI Models
@@ -76,6 +77,7 @@ The task dropdown currently includes these Azure AI Foundry model IDs:
 
 - gpt-4.1, gpt-4.1-mini, gpt-4.1-nano
 - gpt-5-mini
+- Kimi-K2.5
 - gpt-5.1, gpt-5.1-chat, gpt-5.1-codex, gpt-5.1-codex-mini, gpt-5.1-codex-max
 - gpt-5.2, gpt-5.2-chat, gpt-5.2-codex
 - grok-code-fast-1, grok-3-mini, grok-4-fast-reasoning, grok-4-fast-non-reasoning

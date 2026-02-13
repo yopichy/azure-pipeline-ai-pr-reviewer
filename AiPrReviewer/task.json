@@ -13,7 +13,7 @@
   "version": {
     "Major": "2",
     "Minor": "0",
-    "Patch": "10"
+    "Patch": "11"
   },
   "minimumAgentVersion": "1.95.0",
   "instanceNameFormat": "AiPrReviewer $(message)",
@@ -29,7 +29,7 @@
     {
       "name": "model",
       "type": "pickList",
-      "label": "OpenAI model",
+      "label": "Model",
       "required": false,
       "options": {
         "": "",
@@ -37,6 +37,7 @@
         "gpt-4.1-mini": "GPT 4.1 Mini",
         "gpt-4.1-nano": "GPT 4.1 Nano",
         "gpt-5-mini": "GPT 5 Mini",
+        "Kimi-K2.5": "Kimi K2.5",
         "grok-code-fast-1": "Grok Code Fast 1",
         "grok-3-mini": "Grok 3 Mini",
         "grok-4-fast-reasoning": "Grok 4 Fast Reasoning",
@@ -50,7 +51,7 @@
         "gpt-5.2-chat": "GPT 5.2 Chat",
         "gpt-5.2-codex": "GPT 5.2 Codex"
       },
-      "helpMarkDown": "The model to use (GPT-4.1 / GPT-5.1 / GPT-5.2 variants, max input price $2/1M tokens based on Azure OpenAI pricing). If no model is selected, defaults to GPT 4.1 Mini when using an Azure endpoint; otherwise defaults to GPT 3.5 Turbo when using OpenAI."
+      "helpMarkDown": "The model/deployment to use (OpenAI, Azure OpenAI, and Azure AI Foundry partner models such as Grok and Kimi). If no model is selected, defaults to GPT 4.1 Mini when using an Azure endpoint; otherwise defaults to GPT 3.5 Turbo when using OpenAI."
     },
     {
       "name": "aoi_endpoint",
