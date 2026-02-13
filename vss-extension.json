@@ -2,7 +2,7 @@
     "manifestVersion": 1,
     "id": "AIPrReviewer",
     "name": "AI PR Reviewer",
-    "version": "2.0.11",
+    "version": "2.0.15",
     "publisher": "inskyid",
     "galleryFlags": [
         "Public",

@@ -17,6 +17,60 @@ function truncateContent(content: string, maxTokens: number): string {
 }
 
 function extractReviewFromFoundryResponse(response: any): string | undefined {
+  function extractFromResponsesOutput(output: any): string | undefined {
+    const outputItems = Array.isArray(output)
+      ? output
+      : output
+        ? [output]
+        : [];
+
+    const textParts: string[] = [];
+
+    for (const item of outputItems) {
+      if (!item) {
+        continue;
+      }
+
+      if (Array.isArray(item.content)) {
+        for (const contentItem of item.content) {
+          const textCandidate =
+            (typeof contentItem?.text === "string" ? contentItem.text : undefined) ??
+            (typeof contentItem?.text?.value === "string" ? contentItem.text.value : undefined) ??
+            (typeof contentItem?.output_text === "string" ? contentItem.output_text : undefined) ??
+            (typeof contentItem?.value === "string" ? contentItem.value : undefined);
+
+          if (textCandidate?.trim()) {
+            textParts.push(textCandidate.trim());
+          }
+        }
+      }
+
+      if (Array.isArray(item.summary)) {
+        for (const summaryItem of item.summary) {
+          const summaryText =
+            (typeof summaryItem?.text === "string" ? summaryItem.text : undefined) ??
+            (typeof summaryItem?.text?.value === "string" ? summaryItem.text.value : undefined) ??
+            (typeof summaryItem?.value === "string" ? summaryItem.value : undefined);
+
+          if (summaryText?.trim()) {
+            textParts.push(summaryText.trim());
+          }
+        }
+      }
+
+      const itemText =
+        (typeof item?.text === "string" ? item.text : undefined) ??
+        (typeof item?.text?.value === "string" ? item.text.value : undefined);
+
+      if (itemText?.trim()) {
+        textParts.push(itemText.trim());
+      }
+    }
+
+    const joined = textParts.join("\n").trim();
+    return joined || undefined;
+  }
+
   function extractTextParts(value: any): string[] {
     if (!value) {
       return [];
@@ -62,8 +116,17 @@ function extractReviewFromFoundryResponse(response: any): string | undefined {
     return outputTextValue;
   }
 
+  const responsesOutputValue = extractFromResponsesOutput(response.output);
+  if (responsesOutputValue) {
+    return responsesOutputValue;
+  }
+
   if (Array.isArray(response.choices) && response.choices.length > 0) {
-    const choiceTextValue = firstText(response.choices[0]?.message?.content);
+    const choiceTextValue = firstText(
+      response.choices[0]?.message?.content ??
+      response.choices[0]?.text ??
+      response.choices[0]
+    );
     if (choiceTextValue) {
       return choiceTextValue;
     }
@@ -216,7 +279,8 @@ export async function reviewFile(
   httpsAgent: Agent,
   apiKey: string,
   openai: OpenAIApi | undefined,
-  aoiEndpoint: string | undefined
+  aoiEndpoint: string | undefined,
+  prContext: string
 ) {
   console.log(`Start reviewing ${fileName} ...`);
 
@@ -293,7 +357,12 @@ export async function reviewFile(
 
   const model = tl.getInput("model") || defaultOpenAIModel;
 
-  const totalTokens = countTokens(instructions + patch + fileContent);
+  const additionalPrContext = prContext?.trim()
+    ? `\n\nAdditional PR context from Azure DevOps:\n${prContext}`
+    : "";
+  const promptInstructions = `${instructions}${additionalPrContext}`;
+
+  const totalTokens = countTokens(promptInstructions + patch + fileContent);
   console.log(`Total tokens: ${totalTokens}. Max tokens: ${MAX_TOKENS}`);
 
   // This is just the first version, not sure about the best way to handle this.
@@ -303,7 +372,7 @@ export async function reviewFile(
         totalTokens - MAX_TOKENS
       } tokens. Truncating...`
     );
-    const newLength = MAX_TOKENS - patch.length - instructions.length - 100;
+    const newLength = MAX_TOKENS - patch.length - promptInstructions.length - 100;
     console.log(`New length: ${newLength}`);
     fileContent = truncateContent(fileContent, newLength);
   }
@@ -317,7 +386,7 @@ export async function reviewFile(
         messages: [
           {
             role: "system",
-            content: instructions,
+            content: promptInstructions,
           },
           {
             role: "user",
@@ -337,7 +406,7 @@ export async function reviewFile(
         "Total tokens: " + response.data.usage?.total_tokens
       );
 
-      reviewText = response.data.choices?.[0]?.message?.content;
+      reviewText = extractReviewFromFoundryResponse(response.data);
     } else if (aoiEndpoint) {
       // Check if this is Azure AI Foundry Responses API endpoint
       const isResponsesAPI = aoiEndpoint.includes('/openai/responses');
@@ -350,7 +419,7 @@ export async function reviewFile(
           body: JSON.stringify({
             model: model,
             max_output_tokens: 750,
-            input: `${instructions}\n\nPatch:\n${patch}\n\nSurrounding code:\n${fileContent}`,
+            input: `${promptInstructions}\n\nPatch:\n${patch}\n\nSurrounding code:\n${fileContent}`,
           }),
         });
 
@@ -362,6 +431,12 @@ export async function reviewFile(
         const response = await request.json();
         reviewText = extractReviewFromFoundryResponse(response);
         if (!reviewText || !reviewText.trim()) {
+          if (response?.status && response.status !== "completed") {
+            console.warn(`Foundry response status: ${response.status}`);
+          }
+          if (response?.incomplete_details) {
+            console.warn(`Foundry incomplete details: ${JSON.stringify(response.incomplete_details)}`);
+          }
           console.log(`Foundry response keys: ${Object.keys(response || {}).join(",")}`);
         }
       } else {
@@ -387,7 +462,7 @@ export async function reviewFile(
           messages: [
             {
               role: "system",
-              content: instructions,
+              content: promptInstructions,
             },
             {
               role: "user",
@@ -418,7 +493,10 @@ export async function reviewFile(
         }
 
         const response = await request.json();
-        reviewText = response?.choices?.[0]?.message?.content;
+        reviewText = extractReviewFromFoundryResponse(response);
+        if (!reviewText || !reviewText.trim()) {
+          console.log(`Chat response keys: ${Object.keys(response || {}).join(",")}`);
+        }
       }
     }
 

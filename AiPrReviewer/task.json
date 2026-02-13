@@ -13,7 +13,7 @@
   "version": {
     "Major": "2",
     "Minor": "0",
-    "Patch": "11"
+    "Patch": "15"
   },
   "minimumAgentVersion": "1.95.0",
   "instanceNameFormat": "AiPrReviewer $(message)",
@@ -76,6 +76,14 @@
       "defaultValue": ".png,.jpg,.jpeg,.gif,.bmp,.tiff,.svg,.ico,.csv,.json,.zip,.tar,.gz,.rar,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.mp3,.mp4,.avi,.mov,.webm,.ogg,.wav",
       "required": false,
       "helpMarkDown": "List of file extensions to ignore (e.g., .zip, .mp3, .mp4). Leave empty to process all extensions."
+    },
+    {
+      "name": "use_commit_messages_as_context",
+      "type": "boolean",
+      "label": "Use PR title & description as context",
+      "defaultValue": "true",
+      "required": false,
+      "helpMarkDown": "Include Azure DevOps PR title and description as additional context when generating review comments."
     },
     {
       "name": "override_prompt",

@@ -78,6 +78,34 @@ export async function deleteExistingComments(httpsAgent: Agent) {
   console.log("Existing comments deleted.");
 }
 
+export async function getPullRequestContext(httpsAgent: Agent): Promise<string> {
+  const prUrl = `${tl.getVariable('SYSTEM.TEAMFOUNDATIONCOLLECTIONURI')}${tl.getVariable('SYSTEM.TEAMPROJECTID')}/_apis/git/repositories/${tl.getVariable('Build.Repository.Name')}/pullRequests/${tl.getVariable('System.PullRequest.PullRequestId')}?api-version=7.1-preview.1`;
+
+  const response = await fetch(prUrl, {
+    headers: { Authorization: `Bearer ${tl.getVariable('SYSTEM.ACCESSTOKEN')}` },
+    agent: httpsAgent
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.warn(`Failed to read PR metadata (${response.status}): ${errorBody}`);
+    return "";
+  }
+
+  const pullRequest = await response.json() as any;
+  const title = (pullRequest?.title || "").trim();
+  const description = (pullRequest?.description || "").trim();
+
+  if (!title && !description) {
+    console.log("PR title/description not found for additional context.");
+    return "";
+  }
+
+  const context = `PR Title:\n${title || "-"}\n\nPR Description:\n${description || "-"}`;
+  console.log(`PR metadata used as context:\n${context}`);
+  return context;
+}
+
 function getCollectionName(collectionUri: string) {
   const collectionUriWithoutProtocol = collectionUri!.replace('https://', '').replace('http://', '');
 

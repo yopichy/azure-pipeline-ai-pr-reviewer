@@ -62,9 +62,9 @@ https://{RESOURCE}.services.ai.azure.com/openai/v1/
 https://{RESOURCE}.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview
 
 Notes:
-- Set the task input "OpenAI model" to your deployment name (for example: grok-4-fast-reasoning).
 - Set the task input "Model" to your deployment name (for example: grok-4-fast-reasoning).
 - The task detects the endpoint type automatically and applies the correct auth header.
+- You can enable/disable PR metadata context with the task option "Use PR title & description as context".
 
 ### OpenAI Models
 

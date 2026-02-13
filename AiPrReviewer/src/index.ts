@@ -1,6 +1,6 @@
 import * as tl from "azure-pipelines-task-lib/task";
 import { Configuration, OpenAIApi } from "openai";
-import { deleteExistingComments } from "./pr";
+import { deleteExistingComments, getPullRequestContext } from "./pr";
 import { reviewFile } from "./review";
 import { getTargetBranchName } from "./utils";
 import { getChangedFiles } from "./git";
@@ -19,6 +19,9 @@ async function run() {
     let openai: OpenAIApi | undefined;
     const supportSelfSignedCertificate = tl.getBoolInput(
       "support_self_signed_certificate"
+    );
+    const useCommitMessagesAsContext = tl.getBoolInput(
+      "use_commit_messages_as_context"
     );
     const apiKey = tl.getInput("api_key", true);
     const aoiEndpoint = tl.getInput("aoi_endpoint");
@@ -48,6 +51,9 @@ async function run() {
     }
 
     const filesNames = await getChangedFiles(targetBranch);
+    const prContext = useCommitMessagesAsContext
+      ? await getPullRequestContext(httpsAgent)
+      : "";
 
     await deleteExistingComments(httpsAgent);
 
@@ -59,7 +65,8 @@ async function run() {
           httpsAgent,
           apiKey,
           openai,
-          aoiEndpoint
+          aoiEndpoint,
+          prContext
         );
       } catch (error) {
         console.log(`Error reviewing ${fileName}. ${error}`);
