@@ -431,7 +431,9 @@ export async function reviewFile(
     );
     fileContent = await git.show([`HEAD:${fileName}`]);
   } else {
-	fileContent = await git.show([`${targetBranch}:${fileName}`]);
+	// Use PR (HEAD) version for context; using targetBranch here can make the model
+	// suggest changes that were already applied in the PR.
+	fileContent = await git.show([`HEAD:${fileName}`]);
   }
   
   const isIgnoredFileExtension = isFileWithIgnoredFileExtension(
@@ -543,7 +545,7 @@ export async function reviewFile(
           },
           {
             role: "user",
-            content: `Surrounding code : ${fileContent}`,
+            content: `Surrounding code (PR version): ${fileContent}`,
           },
         ],
         max_tokens: maxOutputTokens,
